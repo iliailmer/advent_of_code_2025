@@ -38,7 +38,7 @@ def add(a: int, b: int):
 
 op_map = {"*": mult, "+": add}
 
-# puzzle = read_puzzle("inputs/day_6/puzzle.txt")
+puzzle = read_puzzle("inputs/day_6/puzzle.txt")
 problem = parse_puzzle(puzzle)
 rows = len(problem)
 cols = len(problem[0])
@@ -56,25 +56,37 @@ print(sum(solution))
 # part 2
 
 
-def process_columns(problem: list):
-    rows = len(problem) - 1  # ignore last row
-    cols = len(problem[0])
+def solve_puzzle_pt2(puzzle: str):
+    lines = puzzle.strip().split("\n")
     columns = []
-    for c in range(cols):
-        column = [deque(str(problem[i][c])) for i in range(rows)]
-        max_string_len = len(max(column, key=lambda x: len(x)))
-        for i in range(len(column)):
-            column[i].extendleft(["" for _ in range(max_string_len - len(column[i]))])
-        # column is len(column) x max_string_len array
-        number = ""
+    last_line = lines[-1]
+    start_col = [i for i, _ in enumerate(last_line) if last_line[i] != " "]
+    for each_slice in zip(start_col, start_col[1:]):
+        columns.append(
+            [list(l[each_slice[0] : each_slice[-1] - 1]) for l in lines[:-1]]
+        )
+    columns.append([list(l[start_col[-1] :]) for l in lines[:-1]])
+    numbers = []
+    for col in columns:
+        nums = []
+        rows = len(col)
+        cols = len(col[0])
+        for c in range(cols):
+            num = ""
+            for r in range(rows):
+                num += col[r][c]
+            nums.append(int(num))
+        numbers.append(nums)
+    ops = [last_line[i] for i in start_col]
+    total = 0
+    for idx, each in enumerate(numbers):
+        res = 0 if ops[idx] == "+" else 1
+        for other in each:
+            res = op_map[ops[idx]](res, other)
+        total += res
 
-        for col_idx in range(max_string_len):
-            for row_idx in range(len(column)):
-                number = number + column[row_idx][col_idx]
-            print(number)
-            number = ""
-        columns.append(column)
-    return columns
+    return total
 
 
-print(process_columns(problem)[0])
+# print(process_columns(problem)[0])
+print(solve_puzzle_pt2(puzzle))
