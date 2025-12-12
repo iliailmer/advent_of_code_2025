@@ -1,9 +1,6 @@
 from collections import deque
 from typing import NamedTuple
 
-import matplotlib.animation as animation
-import matplotlib.pyplot as plt
-
 puzzle = """7,1
 11,1
 11,7
