@@ -117,5 +117,5 @@ def read_puzzle(path: str):
 
 
 puzzle = read_puzzle("./inputs/day_8/puzzle.txt")
-# print(part_1(puzzle))
+print(part_1(puzzle))
 print(part_2(puzzle))
