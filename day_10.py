@@ -1,6 +1,8 @@
 from collections import deque
 from itertools import product
 
+from pulp import PULP_CBC_CMD, LpMinimize, LpProblem, LpVariable, lpSum
+
 puzzle = """[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
 [...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}
 [.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}"""
@@ -80,8 +82,6 @@ class Graph:
 with open("./inputs/day_10/puzzle.txt") as f:
     puzzle = f.read()
 
-indicators, buttons, joltages = parse_puzzle(puzzle)
-
 
 def part_1(indicators, buttons):
     graphs = [Graph(i, b) for i, b in zip(indicators, buttons)]
@@ -89,4 +89,53 @@ def part_1(indicators, buttons):
     return answer
 
 
+def solve_with_ilp(target: tuple[int], buttons: list[str]):
+    """
+    Proper Integer Linear Programming solution.
+    Guarantees integer button presses!
+    """
+    buttons_tuples = [tuple(map(int, x.strip("()").split(","))) for x in buttons]
+
+    # Create the problem
+    prob = LpProblem("ButtonPresses", LpMinimize)
+
+    # Variables: number of times each button is pressed
+    button_vars = [
+        LpVariable(f"button_{i}", lowBound=0, cat="Integer")
+        for i in range(len(buttons_tuples))
+    ]
+
+    # Objective: minimize total button presses
+    prob += lpSum(button_vars)
+
+    # Constraints: each counter must reach its target
+    for counter_idx in range(len(target)):
+        counter_sum = lpSum(
+            [
+                button_vars[btn_idx]
+                for btn_idx, button in enumerate(buttons_tuples)
+                if counter_idx in button
+            ]
+        )
+        prob += counter_sum == target[counter_idx]
+
+    # Solve
+    prob.solve(PULP_CBC_CMD(msg=0))
+
+    if prob.status == 1:  # Optimal solution found
+        return int(sum(v.varValue for v in button_vars))
+
+    return -1
+
+
+def part_2_lp(joltages: list[str], buttons: list[list[str]]):
+    presses = [
+        solve_with_ilp(tuple(map(int, joltage.strip("{}").split(","))), button)
+        for (joltage, button) in zip(joltages, buttons)
+    ]
+    return sum(presses)
+
+
+indicators, buttons, joltages = parse_puzzle(puzzle)
 print(part_1(indicators, buttons))
+print(part_2_lp(joltages, buttons))
