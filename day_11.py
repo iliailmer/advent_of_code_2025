@@ -74,92 +74,39 @@ class Graph:
 
         return reachable
 
-    def _all_paths_dfs(self, start="svr", end="out"):
-        paths = []
-        path_count = [0]
-        can_reach_fft = self._compute_reachable("fft")
-        can_reach_dac = self._compute_reachable("dac")
-        can_reach_end = self._compute_reachable(end)
-        reachable_from_fft = self._compute_reachable_from("fft")
-        reachable_from_dac = self._compute_reachable_from("dac")
-        fft_then_dac_possible = (
-            "dac" in reachable_from_fft and end in reachable_from_dac
-        )
-        dac_then_fft_possible = (
-            "fft" in reachable_from_dac and end in reachable_from_fft
-        )
+    def _count_paths_dp(self, start="svr", end="out"):
+        memo = {}
 
-        if not (fft_then_dac_possible or dac_then_fft_possible):
-            print("No valid paths exist!")
-            return 0
-        print(f"Nodes that can reach fft: {len(can_reach_fft)}")
-        print(f"Nodes that can reach dac: {len(can_reach_dac)}")
-        print(f"Nodes that can reach end: {len(can_reach_end)}")
+        def dp(node, seen_fft, seen_dac, visited):
+            # Base case
+            if node == end:
+                return 1 if (seen_fft and seen_dac) else 0
 
-        def dfs(
-            current_node: str,
-            visited: set,
-            seen_fft: bool,
-            seen_dac: bool,
-        ):
-            if current_node not in can_reach_end:
-                return
-            if not seen_fft and current_node not in can_reach_fft:
-                return
-            if not seen_dac and current_node not in can_reach_dac:
-                return
+            cache_key = (node, seen_fft, seen_dac)
+            if cache_key in memo:
+                return memo[cache_key]
 
-            if current_node == "fft" and not seen_fft:
-                if "dac" not in reachable_from_fft:
-                    return
-            if current_node == "dac" and not seen_dac and not seen_fft:
-                if "fft" not in reachable_from_dac:
-                    return
-            if seen_fft and not seen_dac:
-                if "dac" not in reachable_from_fft:
-                    return
+            # Update flags
+            seen_fft = seen_fft or (node == "fft")
+            seen_dac = seen_dac or (node == "dac")
 
-            if seen_dac and not seen_fft:
-                if "fft" not in reachable_from_dac:
-                    return
+            visited.add(node)
 
-            visited.add(current_node)
-            seen_fft = seen_fft or (current_node == "fft")
-            seen_dac = seen_dac or (current_node == "dac")
-            if current_node == end:
-                if seen_fft and seen_dac:
-                    print(path_count[0])
-                    path_count[0] += 1
-            else:
-                for neighbor in self.get_neighbors(current_node):
-                    if neighbor not in visited:
-                        dfs(
-                            neighbor,
-                            visited,
-                            seen_dac=seen_dac,
-                            seen_fft=seen_fft,
-                        )
-            visited.remove(current_node)
+            total = 0
+            for neighbor in self.get_neighbors(node):
+                if neighbor not in visited:
+                    total += dp(neighbor, seen_fft, seen_dac, visited)
 
-        dfs(start, set(), False, False)
-        return path_count[0]
+            visited.remove(node)
+
+            memo[cache_key] = total
+            return total
+
+        return dp(start, False, False, set())
 
 
-puzzle = """svr: aaa bbb
-aaa: fft
-fft: ccc
-bbb: tty
-tty: ccc
-ccc: ddd eee
-ddd: hub
-hub: fff
-eee: dac
-dac: fff
-fff: ggg hhh
-ggg: out
-hhh: out"""
 with open("./inputs/day_11/puzzle.txt") as f:
     puzzle = f.read()
 g = Graph(puzzle)
 print(g._all_paths_bfs())
-print(g._all_paths_dfs())
+print(g._count_paths_dp())
