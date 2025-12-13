@@ -1,5 +1,7 @@
-from collections import deque
+# TODO: Use Numpy for part 2
 from typing import NamedTuple
+
+import numpy as np
 
 puzzle = """7,1
 11,1
